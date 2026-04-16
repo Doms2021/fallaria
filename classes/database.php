@@ -87,5 +87,24 @@ dsn: 'mysql:host=localhost;
             throw $e;
         }
     }
+    function insertBook($title, $isbn, $publication_year, $edition, $publisher){
+        $con = $this->opencon();
+     
+        try{
+            $con->beginTransaction();
+     
+            $stmt = $con->prepare('INSERT INTO books (book_title, book_isbn, book_publication_year, book_edition, book_publisher) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([$title, $isbn, $publication_year, $edition, $publisher]);
+            $book_id = $con->lastInsertId();
+            $con->commit();
+            return $book_id;
+     
+        }catch(PDOException $e){  
+            if($con->inTransaction()){
+                $con->rollBack();
+            }
+            throw $e;
+        }
+    }
 
 }
