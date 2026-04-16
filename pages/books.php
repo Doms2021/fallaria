@@ -1,12 +1,11 @@
-
-<?php
+ <?php
 require_once('../classes/database.php');
 $con = new database();
 
 
 
-$bookAddStatus = null;
-$bookaAddMessage = '';
+$addBookStatus = null;
+$addBookMessage = '';
  
 if(isset($_POST['add_book'])){
  
@@ -20,14 +19,58 @@ if(isset($_POST['add_book'])){
   try {
     $book_id = $con->insertBook($title, $isbn, $publication_year, $edition, $publisher);
 
-    $bookAddStatus = 'success';
-    $bookAddMessage = 'Book added successfully.';
+    $addBookStatus = 'success';
+    $addBookMessage = 'Book added successfully.';
 
 } catch (Exception $e) {
-    $bookAddStatus = 'error';
-    $bookAddMessage = 'Error adding book.';
+    $addBookStatus = 'error';
+    $addBookMessage = $e->getmessage();
 }
 }
+$copyStatus = null;
+$copyMessage = '';
+
+if(isset($_POST['book_copy'])){
+ 
+  $book = $_POST['book_id'];
+  $status = $_POST['bc_status'];
+
+ 
+ 
+  try {
+    $copy_id = $con->insertBookCopy($book, $status);
+
+    $copyStatus = 'success';
+    $copyMessage = 'Book added successfully.';
+
+} catch (Exception $e) {
+    $copyStatus = 'error';
+    $copyMessage = 'Error adding book.';
+}
+}
+$bookAuthorsStatus = null;
+$bookAuthorsMessage = '';
+
+if(isset($_POST['book_Author'])){
+
+  
+  $book_id = $_POST['book_id'];
+  $author_id = $_POST['author_id'];
+
+ 
+ 
+  try {
+    $con->insertBookAuthors($book_id, $author_id);
+
+    $bookAuthorsStatus = 'success';
+    $bookAuthorsMessage = 'Book added successfully.';
+
+} catch (Exception $e) {
+    $bookAuthorsStatus = 'error';
+    $bookAuthorsMessage = $e->getmessage();
+}
+}
+
 
 ?>
 
@@ -37,9 +80,12 @@ if(isset($_POST['add_book'])){
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Books — Admin</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <!--link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"-->
   <link rel="stylesheet" href="../assets/css/style.css">
+
   <link rel="stylesheet" href="../bootstrap/css/bootstrap.css">
+  <link rel="stylesheet" href="../sweetalert/dist/sweetalert2.css">
+
 </head>
 <body>
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
@@ -116,7 +162,7 @@ if(isset($_POST['add_book'])){
           </div>
           <div class="mb-3">
             <label class="form-label">Status</label>
-            <select class="form-select" name="status" required>
+            <select class="form-select" name="bc_status" required>
               <option value="AVAILABLE">AVAILABLE</option>
               <option value="ON_LOAN">ON_LOAN</option>
               <option value="LOST">LOST</option>
@@ -124,7 +170,7 @@ if(isset($_POST['add_book'])){
               <option value="REPAIR">REPAIR</option>
             </select>
           </div>
-          <button class="btn btn-outline-primary w-100" type="submit">Add Copy</button>
+          <button name ='book_copy' class="btn btn-outline-primary w-100" type="submit">Add Copy</button>
         </form>
       </div>
     </div>
@@ -157,32 +203,28 @@ if(isset($_POST['add_book'])){
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>1</td>
-                <td>Noli Me Tangere</td>
-                <td>9789710810736</td>
-                <td>1887</td>
-                <td>National Book Store</td>
-                <td>3</td>
-                <td><span class="badge text-bg-success">2</span></td>
-                <td class="text-end">
-                  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBookModal">Edit</button>
-                  <button class="btn btn-sm btn-outline-danger">Delete</button>
-                </td>
-              </tr>
-              <tr>
-                <td>4</td>
-                <td>Smaller and Smaller Circles</td>
-                <td>9789712721768</td>
-                <td>2002</td>
-                <td>Ateneo de Manila University Press</td>
-                <td>2</td>
-                <td><span class="badge text-bg-warning">1</span></td>
-                <td class="text-end">
-                  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBookModal">Edit</button>
-                  <button class="btn btn-sm btn-outline-danger">Delete</button>
-                </td>
-              </tr>
+              <?php
+
+              $viewcopies = $con->viewCopies();
+              foreach($viewcopies as $vw){
+
+
+              echo'<tr>';
+               echo' <td>'.$vw['book_id'].'</td>';
+               echo' <td>'.$vw['book_title'].'</td>';
+               echo' <td>'.$vw['book_isbn'].'</td>';
+               echo' <td>'.$vw['book_publication_year'].'</td>';
+               echo' <td>'.$vw['book_publisher'].'</td>';
+               echo' <td>'.$vw['Copies'].'</td>';
+               echo' <td>'.$vw['Available_Copies'].'</td>';
+                echo '<td class="text-end">';
+                 echo ' <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBookModal">Edit</button>';
+                  echo '<button class="btn btn-sm btn-outline-danger">Delete</button>';
+                echo '</td>';
+                echo '</tr>';
+              }
+              ?>
+
             </tbody>
           </table>
         </div>
@@ -212,7 +254,7 @@ if(isset($_POST['add_book'])){
                   </select>
                 </div>
                 <div class="col-12">
-                  <button class="btn btn-outline-primary w-100" type="submit">Assign</button>
+                  <button name= "book_Author"class="btn btn-outline-primary w-100" type="submit">Assign</button>
                 </div>
               </form>
               <div class="small-muted mt-2">Unique constraint prevents duplicate (book_id, author_id).</div>
@@ -305,6 +347,44 @@ if(isset($_POST['add_book'])){
     icon: 'error',
     title: 'Error',
       text: addBookMessage,
+      confirmButtonText: 'OK'
+    });
+  }
+
+  const copyStatus = <?php echo json_encode($copyStatus)?>;
+  const copyMessage = <?php echo json_encode($copyMessage)?>;
+ 
+  if(copyStatus == 'success'){
+    Swal.fire({
+    icon: 'success',
+    title: 'Success',
+      text: copyMessage,
+      confirmButtonText: 'OK'
+    });
+  }else if(copyStatus == 'error'){
+    Swal.fire({
+    icon: 'error',
+    title: 'Error',
+      text: copyMessage,
+      confirmButtonText: 'OK'
+    });
+  }
+
+  const bookAuthorsStatus = <?php echo json_encode($bookAuthorsStatus)?>;
+  const bookAuthorsMessage = <?php echo json_encode($bookAuthorsMessage)?>;
+ 
+  if(bookAuthorsStatus == 'success'){
+    Swal.fire({
+    icon: 'success',
+    title: 'Success',
+      text: bookAuthorsMessage,
+      confirmButtonText: 'OK'
+    });
+  }else if(bookAuthorsStatus == 'error'){
+    Swal.fire({
+    icon: 'error',
+    title: 'Error',
+      text: bookAuthorsMessage,
       confirmButtonText: 'OK'
     });
   }

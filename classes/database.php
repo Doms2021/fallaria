@@ -106,5 +106,61 @@ dsn: 'mysql:host=localhost;
             throw $e;
         }
     }
+    function insertBookCopy( $book, $status){
+        $con = $this->opencon();
+     
+        try{
+            $con->beginTransaction();
+     
+            $stmt = $con->prepare('INSERT INTO bookcopy(book_id, bc_status) VALUES (?, ?)');
+            $stmt->execute([$book, $status]);
+            $copy_id = $con->lastInsertId();
+            $con->commit();
+            return $copy_id;
+     
+        }catch(PDOException $e){  
+            if($con->inTransaction()){
+                $con->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    function insertBookAuthors( $book_id,$author_id){
+        $con = $this->opencon();
+     
+        try{
+            $con->beginTransaction();
+     
+            $stmt = $con->prepare('INSERT INTO bookauthors(book_id,author_id) VALUES (?, ?)');
+            $stmt->execute([$book_id, $author_id]);
+            $con->commit();
+            return true;
+     
+        }catch(PDOException $e){  
+            if($con->inTransaction()){
+                $con->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    function viewCopies(){
+        $con = $this->opencon();
+        return $con->query("SELECT
+            books.book_id,
+            books.book_title,
+            books.book_isbn,
+            books.book_publication_year,
+            books.book_publisher,
+            COUNT(bookcopy.copy_id) AS Copies,
+            SUM(bookcopy.bc_status = 'Available') AS Available_Copies
+        FROM
+            books
+        LEFT JOIN bookcopy ON bookcopy.book_id = books.book_id
+        GROUP BY
+            1;
+                ")->fetchAll();
+            }
 
 }
