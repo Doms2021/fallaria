@@ -16,7 +16,7 @@ if(isset($_POST['delete_book'])){
 
   
  try{
-  echo'click';
+
    $con->deletebooks($book_id);
    $_SESSION['success_message'] = $book_title . ' has been deleted in the database.';
    header('Location: books.php');
