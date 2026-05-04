@@ -5,6 +5,7 @@ $con = new database();
 
 $allusers = $con->viewBorrowerUser();
 
+
  
 $borrowerCreateStatus = null;
 $borrowerCreateMessage = '';
@@ -56,7 +57,6 @@ if(isset($_POST['add_borrower_address'])){
   $is_primary = $_POST['is_primary'];
 
   try {
-    // 3. Insert into Users table and get a new user_id
     $ba_id = $con->insertBorrowerAddress($borrower_id,$house_number,$street,$barangay,$city,$province,$postal_code,$is_primary);
    
   
@@ -69,6 +69,7 @@ if(isset($_POST['add_borrower_address'])){
     $borrowerAddressCreateMessage = 'Error creating borroweraddress.';
   }
 }
+
  
 ?>
  
@@ -97,11 +98,13 @@ if(isset($_POST['add_borrower_address'])){
     </button>
     <div id="navBorrowersAdmin" class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto gap-lg-1">
-        <li class="nav-item"><a class="nav-link" href="admin-dashboard.html">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="books.html">Books</a></li>
-        <li class="nav-item"><a class="nav-link active" href="borrowers.html">Borrowers</a></li>
+      <li class="nav-item"><a class="nav-link active" href="dashboard.php">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link active" href="authors-genres.php">Authors &amp; Genres</a></li>
+        <li class="nav-item"><a class="nav-link" href="books.php">Books</a></li>
+        <li class="nav-item"><a class="nav-link" href="borrowers.php">Borrowers</a></li>
         <li class="nav-item"><a class="nav-link" href="checkout.html">Checkout</a></li>
         <li class="nav-item"><a class="nav-link" href="return.html">Return</a></li>
+        <li class="nav-item"><a class="nav-link" href="catalog.html">Catalog</a></li>
       </ul>
       <div class="d-flex align-items-center gap-2">
         <span class="badge badge-soft">Role: ADMIN</span>
@@ -285,9 +288,46 @@ if(isset($_POST['add_borrower_address'])){
             </form>
           </div>
         </div>
+
+       <div class="col-12 col-lg-6">
+  <div class="card p-4 h-100">
+    <h5 class="mb-2">Add Book</h5>
+    <p class="small-muted mb-3">Creates <b>Book</b> record.</p>
+
+    <form method="POST" class="row g-2">
+
+      <div class="col-12">
+        <label class="form-label">Title</label>
+        <input class="form-control" name="book_title" required>
       </div>
-    </div>
- 
+
+      <div class="col-6">
+        <label class="form-label">ISBN</label>
+        <input class="form-control" name="book_isbn">
+      </div>
+
+      <div class="col-6">
+        <label class="form-label">Publication Year</label>
+        <input class="form-control" name="book_publication_year">
+      </div>
+
+      <div class="col-6">
+        <label class="form-label">Edition</label>
+        <input class="form-control" name="book_edition">
+      </div>
+
+      <div class="col-6">
+        <label class="form-label">Publisher</label>
+        <input class="form-control" name="book_publisher">
+      </div>
+
+      <div class="col-12">
+        <button name="add_books" class="btn btn-outline-primary w-100" type="submit">Save Book</button>
+      </div>
+
+    </form>
+  </div>
+</div>
    
   </div>
 </main>
@@ -367,10 +407,30 @@ if(isset($_POST['add_borrower_address'])){
       confirmButtonText: 'OK'
     });
   }
+</script> 
+ <script>
+
+  const addBookStatus = <?php echo json_encode($addBookStatus)?>;
+  const addBookMessage = <?php echo json_encode($addBookMessage)?>;
+ 
+  if(addBookStatus == 'success'){
+    Swal.fire({
+    icon: 'success',
+    title: 'Success',
+      text: addBookMessage,
+      confirmButtonText: 'OK'
+    });
+  }else if(addBookStatus == 'error'){
+    Swal.fire({
+    icon: 'error',
+    title: 'Error',
+      text: addBookMessage,
+      confirmButtonText: 'OK'
+    });
+  }
+
+  
  
 </script>
- 
- 
- 
 </body>
 </html>

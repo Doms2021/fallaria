@@ -1,8 +1,55 @@
- <?php
+<?php
 require_once('../classes/database.php');
+
+session_start();
 $con = new database();
 
+$allbooks = $con->viewBooks();
+$allauthors = $con->viewAuthors();
+$allgenres = $con->viewGenres();
 
+
+
+if(isset($_POST['delete_book'])){
+  $book_id = $_POST['book_id'];
+  $book_title = $_POST['book_title'];
+
+  
+ try{
+  echo'click';
+   $con->deletebooks($book_id);
+   $_SESSION['success_message'] = $book_title . ' has been deleted in the database.';
+   header('Location: books.php');
+   exit();
+  
+
+ } catch(Exception $e) {
+   $error_message = "Cannot delete this book. It may have active loans or copies in use.";
+ }
+}
+
+$addUpdateBookStatus = null;
+$addUpdateBookMessage = '';
+
+if(isset($_POST['update_book'])){
+
+  $book_id = $_POST['book_id'];
+  $title = $_POST['book_title'];
+  $isbn = $_POST['book_isbn'];
+  $year = $_POST['book_publication_year'];
+  $publisher = $_POST['book_publisher'];
+
+  try {
+    $con->updateBook($book_id, $title, $isbn, $year, $publisher);
+
+   $addUpdateBookStatus = 'success';
+    $addUpdateBookMessage = 'Update Books  successfully.';
+
+  } catch(Exception $e) {
+     $addUpdateBookStatus = 'error';
+    $addUpdateBookMessage = $e->getmessage();
+}
+}
 
 $addBookStatus = null;
 $addBookMessage = '';
@@ -45,7 +92,7 @@ if(isset($_POST['book_copy'])){
 
 } catch (Exception $e) {
     $copyStatus = 'error';
-    $copyMessage = 'Error adding book.';
+    $copyMessage =  $e->getmessage();
 }
 }
 $bookAuthorsStatus = null;
@@ -70,6 +117,24 @@ if(isset($_POST['book_Author'])){
     $bookAuthorsMessage = $e->getmessage();
 }
 }
+
+  $bookgenreStatus = null;
+  $bookgenreMessage = '';
+
+  if(isset($_POST['add_Genre'])) {
+    $book_id = $_POST['book_id'];
+    $genre_id = $_POST['genre_id'];
+
+    try {
+      $con->addGenre($genre_id, $book_id);
+
+      $bookgenreStatus = 'success';
+      $bookgenreMessage = 'Genre assigned to book successfully.';
+    }catch (Exception $e) {
+      $bookgenreStatus = 'error';
+      $bookgenreMessage = $e->getmessage();
+    }
+  }
 
 
 ?>
@@ -96,9 +161,10 @@ if(isset($_POST['book_Author'])){
     </button>
     <div id="navBooks" class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto gap-lg-1">
-        <li class="nav-item"><a class="nav-link" href="admin-dashboard.html">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link active" href="books.html">Books</a></li>
-        <li class="nav-item"><a class="nav-link" href="borrowers.html">Borrowers</a></li>
+      <li class="nav-item"><a class="nav-link active" href="dashboard.php">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link active" href="authors-genres.php">Authors &amp; Genres</a></li>
+        <li class="nav-item"><a class="nav-link" href="books.php">Books</a></li>
+        <li class="nav-item"><a class="nav-link" href="borrowers.php">Borrowers</a></li>
         <li class="nav-item"><a class="nav-link" href="checkout.html">Checkout</a></li>
         <li class="nav-item"><a class="nav-link" href="return.html">Return</a></li>
         <li class="nav-item"><a class="nav-link" href="catalog.html">Catalog</a></li>
@@ -112,6 +178,28 @@ if(isset($_POST['book_Author'])){
 </nav>
 
 <main class="container py-4">
+
+<?php if(isset($error_message)){ ?>
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  <strong>Error</strong> <?php echo $error_message; ?>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+   
+  </button>
+</div>
+<?php } ?>
+
+<?php if(isset($_SESSION['success_message'])){ ?>
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <strong>Success!</strong> <?php echo $_SESSION['success_message']; ?>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+   
+  </button>
+</div>
+<?php 
+unset($_SESSION['success_message']);
+} ?>
+
+
   <div class="row g-3">
     <div class="col-12 col-lg-4">
       <div class="card p-4">
@@ -153,11 +241,11 @@ if(isset($_POST['book_Author'])){
             <label class="form-label">Book</label>
             <select class="form-select" name="book_id" required>
               <option value="">Select book</option>
-              <option value="1">Noli Me Tangere</option>
-              <option value="2">El Filibusterismo</option>
-              <option value="3">Mga Ibong Mandaragit</option>
-              <option value="4">Smaller and Smaller Circles</option>
-              <option value="5">Dekada ’70</option>
+             <?php
+              foreach($allbooks as $book) {
+                echo '<option value="' . $book['book_id'] . '">' . $book['book_title'] . '</option>';
+              }
+              ?>
             </select>
           </div>
           <div class="mb-3">
@@ -204,22 +292,40 @@ if(isset($_POST['book_Author'])){
             </thead>
             <tbody>
               <?php
-
+//for edit button
               $viewcopies = $con->viewCopies();
-              foreach($viewcopies as $vw){
+              foreach($viewcopies as $books){
 
 
               echo'<tr>';
-               echo' <td>'.$vw['book_id'].'</td>';
-               echo' <td>'.$vw['book_title'].'</td>';
-               echo' <td>'.$vw['book_isbn'].'</td>';
-               echo' <td>'.$vw['book_publication_year'].'</td>';
-               echo' <td>'.$vw['book_publisher'].'</td>';
-               echo' <td>'.$vw['Copies'].'</td>';
-               echo' <td>'.$vw['Available_Copies'].'</td>';
+               echo' <td>'.$books['book_id'].'</td>';
+               echo' <td>'.$books['book_title'].'</td>';
+               echo' <td>'.$books['book_isbn'].'</td>';
+               echo' <td>'.$books['book_publication_year'].'</td>';
+               echo' <td>'.$books['book_publisher'].'</td>';
+               echo' <td>'.$books['Copies'].'</td>';
+               echo' <td>'.$books['Available_Copies'].'</td>';
                 echo '<td class="text-end">';
-                 echo ' <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBookModal">Edit</button>';
-                  echo '<button class="btn btn-sm btn-outline-danger">Delete</button>';
+                echo '<div class =" btn-group" role="group">';
+
+                 echo ' <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editBookModal"
+
+                 data-book-id="'.$books['book_id'] . '"
+                 data-book-title="'.$books['book_title'] . '"
+                 data-book-isbn="'.$books['book_isbn'] . '"
+                 data-book-publication-year="'.$books['book_publication_year'] . '"
+                 data-book-publisher="'.$books['book_publisher'] . '"
+
+                 >Edit</button>';
+
+
+                echo ' <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteBookModal"
+
+                data-book-id="'.$books['book_id'] . '"
+                 data-book-title="'.$books['book_title'] . '"
+
+                >Delete</button>';
+
                 echo '</td>';
                 echo '</tr>';
               }
@@ -241,16 +347,21 @@ if(isset($_POST['book_Author'])){
                 <div class="col-12 col-md-6">
                   <select class="form-select" name="book_id" required>
                     <option value="">Select book</option>
-                    <option value="1">Noli Me Tangere</option>
-                    <option value="2">El Filibusterismo</option>
+                   <?php
+                    foreach($allbooks as $book) {
+                      echo '<option value="' . $book['book_id'] . '">' . $book['book_title'] . '</option>';
+                    }
+                    ?>
                   </select>
                 </div>
                 <div class="col-12 col-md-6">
                   <select class="form-select" name="author_id" required>
                     <option value="">Select author</option>
-                    <option value="1">Jose Rizal</option>
-                    <option value="2">Amado Hernandez</option>
-                    <option value="3">F. H. Batacan</option>
+                   <?php
+                    foreach($allauthors as $author) {
+                      echo '<option value="' . $author['author_id'] . '">' . $author['author_firstname'] . ' ' . $author['author_lastname'] . '</option>';
+                    }
+                    ?>
                   </select>
                 </div>
                 <div class="col-12">
@@ -270,19 +381,25 @@ if(isset($_POST['book_Author'])){
                 <div class="col-12 col-md-6">
                   <select class="form-select" name="book_id" required>
                     <option value="">Select book</option>
-                    <option value="1">Noli Me Tangere</option>
-                    <option value="2">El Filibusterismo</option>
+                    <?php
+                    foreach($allbooks as $book) {
+                      echo '<option value="' . $book['book_id'] . '">' . $book['book_title'] . '</option>';
+                    }
+                    ?>
                   </select>
                 </div>
                 <div class="col-12 col-md-6">
                   <select class="form-select" name="genre_id" required>
                     <option value="">Select genre</option>
-                    <option value="1">Classic</option>
-                    <option value="5">Philippine Literature</option>
+                   <?php
+                    foreach($allgenres as $genre) {
+                      echo '<option value="' . $genre['genre_id'] . '">' . $genre['genre_name'] . '</option>';
+                    }
+                    ?>
                   </select>
                 </div>
                 <div class="col-12">
-                  <button class="btn btn-outline-primary w-100" type="submit">Assign</button>
+                  <button name= "add_Genre" class="btn btn-outline-primary w-100" type="submit">Assign</button>
                 </div>
               </form>
               <div class="small-muted mt-2">Unique constraint prevents duplicate (genre_id, book_id).</div>
@@ -306,29 +423,102 @@ if(isset($_POST['book_Author'])){
       <div class="modal-body">
         <!-- Later in PHP: load existing values -->
         <form action="#" method="POST">
+
+        <div class="mb-3">
+            <label class="form-label">Book ID</label>
+            <input class="form-control" name ="book_id" id="edit_book_id" readonly>
+
+          </div>
+
           <div class="mb-3">
             <label class="form-label">Title</label>
-            <input class="form-control" value="Noli Me Tangere">
+            <input class="form-control" name ="book_title" id="edit_book_title">
           </div>
           <div class="mb-3">
             <label class="form-label">ISBN</label>
-            <input class="form-control" value="9789710810736">
+            <input class="form-control" name = "book_isbn" id ="edit_book_isbn">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Publication Year</label>
+            <input class="form-control" name = "book_publication_year" id ="edit_book_year">
           </div>
           <div class="mb-3">
             <label class="form-label">Publisher</label>
-            <input class="form-control" value="National Book Store">
+            <input class="form-control" name = "book_publisher" id ="edit_book_publisher">
           </div>
-          <button class="btn btn-primary w-100" type="button">Save Changes</button>
+          <button name= "update_book"class="btn btn-primary w-100" type="sunmit">Save Changes</button>
         </form>
       </div>
     </div>
   </div>
 </div>
 
+<div class="modal fade" id="deleteBookModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Book</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="delete_book_title"></strong>?</p>
+        <p class="text-danger small">This action cannot be undone.</p>
+ 
+        <form action="#" method="POST">
+          <input type="hidden" name="book_id" id="delete_book_id">
+          <input type="hidden" name="book_title" id="delete_book_titles">
+         
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger" name="delete_book" >Delete</button>
+           
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 <!--<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>-->
 
 <script src="../bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="../sweetalert/dist/sweetalert2.js"></script>
+
+<script>
+  const deleteBookModal = document.getElementById('deleteBookModal');
+  deleteBookModal.addEventListener('show.bs.modal', function(event){
+ 
+    const btn = event.relatedTarget;
+    if(!btn) return;
+ 
+    document.getElementById('delete_book_id').value = btn.getAttribute('data-book-id') ||'';
+    document.getElementById('delete_book_titles').value = btn.getAttribute('data-book-title') ||'';
+    document.getElementById('delete_book_title').textContent = btn.getAttribute ('data-book-title') || '';
+ 
+ 
+  });
+</script>
+
+<script>
+
+  const editBookModal = document.getElementById('editBookModal');
+
+  editBookModal.addEventListener('show.bs.modal', function 
+  (event) {
+
+  const btn = event.relatedTarget;
+
+  if(!btn) return;
+
+  document.getElementById('edit_book_id').value = btn.getAttribute('data-book-id');
+  document.getElementById('edit_book_title').value = btn.getAttribute('data-book-title');
+  document.getElementById('edit_book_isbn').value = btn.getAttribute('data-book-isbn');
+  document.getElementById('edit_book_year').value = btn.getAttribute('data-book-publication-year');
+  document.getElementById('edit_book_publisher').value = btn.getAttribute('data-book-publisher');
+  
+}
+);
+  </script>
 
 <script>
 
@@ -385,6 +575,41 @@ if(isset($_POST['book_Author'])){
     icon: 'error',
     title: 'Error',
       text: bookAuthorsMessage,
+      confirmButtonText: 'OK'
+    });
+  }
+   const bookgenreStatus = <?php echo json_encode($bookgenreStatus); ?>;
+  const bookgenreMessage = <?php echo json_encode($bookgenreMessage); ?>;
+
+  if(bookgenreStatus == 'success') {
+    Swal.fire({
+      icon: 'success',
+      title: 'Success',
+      text: bookgenreMessage,
+    });
+  } else if(bookgenreStatus == 'error') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: bookgenreMessage,
+    });
+  } 
+
+  const addUpdateBookStatus = <?php echo json_encode($addUpdateBookStatus)?>;
+  const addUpdateBookMessage = <?php echo json_encode($addUpdateBookMessage)?>;
+ 
+  if(addUpdateBookStatus == 'success'){
+    Swal.fire({
+    icon: 'success',
+    title: 'Success',
+      text: addUpdateBookMessage,
+      confirmButtonText: 'OK'
+    });
+  }else if(addUpdateBookStatus == 'error'){
+    Swal.fire({
+    icon: 'error',
+    title: 'Error',
+      text: addUpdateBookMessage,
       confirmButtonText: 'OK'
     });
   }
